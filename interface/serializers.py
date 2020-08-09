@@ -1,9 +1,9 @@
 from rest_framework import serializers
 from rest_framework import validators
-from .models import Interface
+from .models import Interface_Mo
 # serializers.Serializer序列化
 
-class ProjectSerializer(serializers.Serializer):
+class InterfaceSerializer(serializers.Serializer):
     """
     可以定义序列化器类，来实现序列化和反序列化操作
     a.一定要继承serializers.Serializer
@@ -18,7 +18,7 @@ class ProjectSerializer(serializers.Serializer):
     """
     id = serializers.CharField(max_length=20,label='id',help_text='id',required=False)
     name = serializers.CharField(max_length=200,label='项目名称', help_text='项目名称',
-                                 validators=[validators.UniqueValidator(queryset=Interface.objects.all(),message='项目已存在')],allow_blank=False)
+                                 validators=[validators.UniqueValidator(queryset=Interface_Mo.objects.all(),message='项目已存在')],allow_blank=False)
     # leader = serializers.CharField(max_length=200,label='项目负责人', help_text='项目负责人')
     # h.如果某个字段指定read_only=Ture,那么此字段，前端在创建数据时（反序列化过程）可以不用传，但是一定会输出
     # i.字段不能同时指定read_only=Ture，required=True
@@ -43,7 +43,7 @@ class ProjectSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        obj = Interface.objects.create(**validated_data)
+        obj = Interface_Mo.objects.create(**validated_data)
         return obj
 
     def update(self, instance, validated_data):
@@ -55,7 +55,7 @@ class ProjectSerializer(serializers.Serializer):
         return instance
 
 
-class ProjectModelSerializer(serializers.ModelSerializer):  # 类名自定义
+class InterfaceModelSerializer(serializers.ModelSerializer):  # 类名自定义
 
     # 一、validators.UniqueValidator内
     # 1.queryset=Project_Mo.objects.all()全部查询集
@@ -90,7 +90,7 @@ class ProjectModelSerializer(serializers.ModelSerializer):  # 类名自定义
         # c:默认id主键，会添加read_only=True
         # d:create_time和update_time，会添加read_only=True
 
-        model = Interface
+        model = Interface_Mo
 
         # 视图类内的请求体内必须要有这个类才可以触发以下条件
         # ===========================================================================================
@@ -115,18 +115,18 @@ class ProjectModelSerializer(serializers.ModelSerializer):  # 类名自定义
         extra_kwargs = {
             'name': {
                 'max_length': 10,
-                'min_length': 4
-                # 'label': '项目名称',
-                # 'help_text': '项目名称',
-                # 'validators': [validators.UniqueValidator(queryset=Project_Mo.objects.all(), message='项目已存在')]
+                'min_length': 4,
+                'label': '项目名称',
+                'help_text': '项目名称',
+                'validators': [validators.UniqueValidator(queryset=Interface_Mo.objects.all(), message='项目已存在')]
             },
 
-            # 'programmer': {
-            #         'label': ' 研发人员',
-            #         'write_only': False,
-            #         'max_length': 10,
-            #         'min_length': 4
-            # },
+            'programmer': {
+                    'label': ' 研发人员',
+                    'write_only': False,
+                    'max_length': 10,
+                    'min_length': 4
+            },
         }
 
 

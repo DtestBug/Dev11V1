@@ -1,5 +1,5 @@
 from django.db import models
-
+from projects.models import Project_Mo
 # Create your models here.
 # 表与表之间有哪些关系
 # a.一对一:models.OneToOneField
@@ -7,7 +7,7 @@ from django.db import models
 # c.多对多:models.ManyToManyField
 
 
-class Interface(models.Model):
+class Interface_Mo(models.Model):
     # id = models.AutoField(primary_key=True)  # primary=True，True的状态为唯一主键
     name = models.CharField(verbose_name='接口名称', max_length=200,unique=True, help_text='接口名称')
     #1,ForeignKey指定外键字段
@@ -17,7 +17,7 @@ class Interface(models.Model):
     #4,models.CASCADE:父表记录被删，子表自动删
     #5,models.SET_NULL,null=True:父表记录被删，子表自动设置为null
     # 如果有ForeignKey外键字段，在views内写数据的时候必须添加有效数据
-    projects = models.ForeignKey('projects.Projects', on_delete=models.CASCADE, verbose_name='所属项目',help_text='所属项目')
+    projects = models.ForeignKey('projects.Project_Mo', on_delete=models.CASCADE, verbose_name='所属项目',help_text='所属项目')
     tester = models.CharField(verbose_name='测试人员', max_length=50,help_text='测试人员')
     desc = models.CharField(verbose_name='简要描述', max_length=200,null=True,blank=True,help_text='简要描述')
 

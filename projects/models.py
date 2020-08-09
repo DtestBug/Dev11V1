@@ -24,7 +24,7 @@ from django.db import models
 # 1.python manage.py makemigrations project（为子应用名）
 # 2.python manage.py migrate project(子应用名)
 # 3.查看数据库已变更的信息
-class Projects(models.Model):
+class Project_Mo(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='项目名称', help_text='项目名称',
                             unique=True)
@@ -33,11 +33,11 @@ class Projects(models.Model):
     programmer = models.CharField(max_length=50, verbose_name='开发人员', help_text='开发人员')
     desc = models.TextField(verbose_name='项目简介', help_text='项目简介', blank=True, default='XXX简介', null=True)
     create_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间', help_text='创建时间', )
-    upd = models.DateTimeField(auto_now=True, verbose_name='创建时间', help_text='创建时间')
+    update_time = models.DateTimeField(auto_now=True, verbose_name='更新时间', help_text='更新时间')
 
 
     class Meta:
-        db_table = 't_Django_api'
+        db_table = 't_Django_projects'
         verbose_name = '项目表'
 
     def __str__(self):
