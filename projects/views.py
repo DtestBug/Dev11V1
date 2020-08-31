@@ -1,100 +1,123 @@
-from django.shortcuts import render
-from django.views import View
-from django.http import HttpResponse,JsonResponse,Http404
-# Create your views here.
 from .models import Project_Mo
-from .serializers import ProjectSerializer,ProjectModelSerializer
-import json
-
-from rest_framework.views import APIView
+from .serializers import ProjectModelSerializer, ProjectsNamesModelSerializer,InterFacesByProjectIdModelSerializer
 from rest_framework.generics import GenericAPIView
 from rest_framework import status
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
+from rest_framework import mixins
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from utils.pagination import Mypagination
+import logging
+from rest_framework import permissions  # 认证
 
-ret1 = {
-    'msg': '参数有误',
-    'code': 10001,
-}
+logger = logging.getLogger("test")  # 日志器为settings.py中定义的日志器名
 
-ret2 = {'msg': '操作成功',
-        'code': 10002,
-}
 
-class Project_M(GenericAPIView):
+class XXXMinxin:
+    def list(self, *args, **kwargs):
+        lists = self.filter_queryset(self.get_queryset())  # 覆盖重写查询集lists
+        page = self.paginate_queryset(lists)
+        if page is not None:
+            serializer_obj = self.get_serializer(instance=page, many=True)
+            return self.get_paginated_response(serializer_obj.data)
+        one = self.get_serializer(instance=lists, many=True)
+        return Response(one.data,status=status.HTTP_200_OK)  # 1.status指定响应状态码
 
-    # b. instance参数可以传查询集（多条记录），加上many=True
-    # d.如果未传递many=True参数，那么序列化器对象.data返回的是字典，否则返回一个嵌套字典的列表
+
+class Projects(mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView):
     queryset = Project_Mo.objects.all() # 查询集
     serializer_class = ProjectModelSerializer # 序列化器类
+    filter_backends = [DjangoFilterBackend, OrderingFilter]  # 过滤引擎,排序引擎
+    filterset_fields = ['name', 'leader', 'id']  #过滤字段
+    ordering_fields = ['id', 'name']  # 排序引擎   示例：http://127.0.0.1:8000/index/projects/?ordering=id，id前面加-可以倒序
+    pagination_class = Mypagination  # 在视图中指定分页
 
-    def get_object(self,pk):
-        try:
-            pro_obj = Project_Mo.objects.get(id=pk)
-        except Exception as e:
-            raise Http404('哦，我的上帝！您访问的页面飞到九霄云外咯。')
-        return pro_obj
+    def get(self,request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
-    def get(self, request, pk):
-        pro_obj = self.get_object(pk)
-        one = self.get_serializer(instance=pro_obj)
-        return Response(one.data,status=status.HTTP_200_OK)
+    def post(self,request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
-    def post(self, request):
 
-        Cr_data = json.loads(request.body)  # 将数据转换为字典格式,获取请求之后发送的json数据
-        res = self.get_serializer(data=Cr_data)
-        try:
-            res.is_valid(raise_exception=True)
-        except Exception as e:
-            ret2.update(res.errors)
-            return Response(ret1, status=status.HTTP_400_BAD_REQUEST)
-        res.save()  # 使用序列化器对象.save()可以自动调用序列化器类中的create方法
-        return Response(res.data, status=status.HTTP_201_CREATED)
-
-    def put(self, request, pk):
-        pro_obj = self.get_object(pk)
-        res = self.get_serializer(instance=pro_obj, data=request.data)
-        try:
-            res.is_valid(raise_exception=True)
-        except Exception as e:
-            ret1.update(res.errors)
-            return Response(ret1, status=status.HTTP_400_BAD_REQUEST)
-        res.save()  # save方法自动调用update
-        return Response(res.data, status=status.HTTP_201_CREATED)
-
-    def delete(self, request, pk):
-        pro_obj = self.get_object(pk)
-        pro_obj.delete()
-        ret2['data'] = f'id:{pk}'
-        return JsonResponse(ret2)
-
-class Projects_M(GenericAPIView):
+class Project(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin, GenericAPIView):
     queryset = Project_Mo.objects.all()  # 查询集
     serializer_class = ProjectModelSerializer  # 序列化器类
-    filter_backends = [DjangoFilterBackend, OrderingFilter]  # 过滤引擎,排序引擎
-    filterset_fields = ['name', 'leader', 'id']  # 过滤字段
-
-    # 在ordering_fields来指定需要排序的字段
-    #  前端在过滤时，需要使用ordering作为key,具体的排序字段作为value
-    # 默认使用升序过滤，如果要降序，可以在排序字段前使用减号
-    ordering_fields = ['id', 'name']  # 排序引擎   示例：http://127.0.0.1:8000/index/projects/?ordering=id，id前面加-可以倒序
 
     # 查询数据库所有数据
-    def get(self, request):
-        # JsonResponse转化数据为json格式
-        # ProjectModelSerializer：serializers文件内的模型序列化类
-        # Projects_Mo.objects.all():查询项目模型里所有的数据
-        # instance参数可以传查询集（多条记录），加上many=True
-        # 如果未传递many=True参数，那么序列化器对象
-        # .data返回的是字典，否则返回一个嵌套字典的列表
-        # safe=False：为了允许序列化非dict对象，请将safe参数设置为False
-        # json_dumps_params={"ensure_ascii": False}
+    def get(self,request,  *args, **kwargs):
+        return self.retrieve(request,  *args, **kwargs)
+        # 过滤需要安装第三方模块django-filter，还有再设置内的子应用注册django_filters,
+        # 再导入过滤引擎：from django_filters.rest_framework import DjangoFilterBackend
+        # pip install django - filter
 
-        lists = self.filter_queryset(self.get_queryset())
-        one = self.get_serializer(instance=lists, many=True)
-        return Response(one.data, status=status.HTTP_200_OK)
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def delete(self,request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
+
+
+# viewsets.ModelViewSet支持以上所有功能（查，建，改，删）
+class ProjectsViewSet(viewsets.ModelViewSet):  # 支持对列表数据进行过滤，排序，分页操作
+
+    # 以下内容均为接口文档内的操作描述
+    """
+    项目视图
+    list:
+        获取项目的列表信息
+    create:
+        创建新的项目
+    names:
+        查看项目名字
+    read:
+        读取项目详情
+    update:
+        更新数据
+    partial_update:
+        局部更新
+    delete:
+        删除数据
+    interfaces:
+        interfaces项目数据
+    """
+
+    queryset = Project_Mo.objects.all()  # 查询集
+    serializer_class = ProjectModelSerializer  # 序列化器类，ProjectsNamesModelSerializer、ProjectModelSerializer
+    pagination_class = Mypagination  # 在视图中指定分页
+    # authentication_classes = ['']  # authentication_classes在视图中指定权限，可以在列表中添加多个权限类
+    permission_classes = [permissions.IsAuthenticated]  # 视图中指定的权限优先级大于全局指定的权限
+
+    # 可以试用action装饰器去自定义动作方法
+    # methods参数默认为['get']，可以定义支持请求方式['get', 'post', 'put']
+    # detail参数为必传参数，指定是否为详情数据（如果需要传递主键ID，那么detail=True,否则为False）
+    # 添加url_path指定url路径，不添加则默认为action名称(当前为names)
+    # url_name指定url的名称，默认为action名称(当前names)
+    @action(methods=['get'], detail=False)  # methods请求方式。  detail=True是详情数据，=False的时候是列表类型的数据# url_path='nnn'
+    def names(self, request):
+        serializer_obj = self.get_serializer(instance=self.get_queryset(), many=True)
+        data = serializer_obj.data
+        logger.debug(data)  # 定义日志器用于记录日志，logging.getLogging('全局配置settings.py中定义的日志器名')
+        # 进行过滤和分页功能
+        # serializer_obj = Mypagination
+        return Response(data)
+
+    @action(detail=True)
+    def interfaces(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer_obj = self.get_serializer(instance=instance)
+        return Response(serializer_obj.data)
+
+    def get_serializer_class(self):
+        if self.action == 'names':
+            return ProjectsNamesModelSerializer
+
+        elif self.action == 'interfaces':
+            return InterFacesByProjectIdModelSerializer
+
+        else:
+            return self.serializer_class
 
 
 

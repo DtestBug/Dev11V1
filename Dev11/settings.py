@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+import sys
+import datetime
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
+sys.path.append(os.path.join(BASE_DIR, 'apps'))  # 阔以导入使用，将某路径添加到系统搜索路径中
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -25,8 +27,13 @@ SECRET_KEY = '-zsvngvi!1^gfaz&6mn0-z0)spw-h)x)3v(%9rivz6o9ux&(h!'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# 可以使用哪些ip或者域名来访问系统
+# 默认为空，可以使用127.0.0.1或者localhost
 ALLOWED_HOSTS = []
-
+# 二、Django设置DEBUG为False时，'django.contrib.staticfiles'会关闭，即Django不会自动搜索静态文件。
+# 静态文件不能加载导致的问题有两个：
+# （1）页面排版不正常，即css文件不能正常加载；
+# （2）通过url不能访问静态文件，如图片等。
 
 # Application definition
 
@@ -39,10 +46,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'django_filters',
-
+    'drf_yasg',
 
     'projects',
-    'interface'
+    'interface',
+    'user',
 ]
 
 MIDDLEWARE = [
@@ -62,7 +70,7 @@ TEMPLATES = [
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join(BASE_DIR, 'templates')]
         ,
-        'APP_DIRS': True,
+        'APP_DIRS': True,   # 允许APP存放模板的时候改为True
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -87,7 +95,7 @@ DATABASES = {
         'HOST': '127.0.0.1',
         'PORT': '3306',
         'USER': 'root',
-        'PASSWORD':'123456',
+        'PASSWORD': '123456',
     }
 }
 
@@ -114,15 +122,15 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
-LANGUAGE_CODE = 'zh-Hans'
+LANGUAGE_CODE = 'zh-Hans'  # zh-Hans中文/en-us英文
 
-TIME_ZONE = 'Asia/shanghai'
+TIME_ZONE = 'Asia/shanghai'  # 改为上海的时间则数据库没有时差
 
 USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = False  # TIME_ZONE的参数为默认值时为True
 
 
 # Static files (CSS, JavaScript, Images)
@@ -130,16 +138,99 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 
-REST_FRAMEWORK = {'NON_FIELD_ERRORS_KEY':'errors',
-                    # 可以修改默认的渲染类（处理返回的数据形式）
-                    # 列表中的元素有优先级，第一个元素的优先级最高
-                    'DEFAULT_RENDERER_CLASSES': [
-                    'rest_framework.renderers.JSONRenderer',
-                    'rest_framework.renderers.BrowsableAPIRenderer',
-                    ],
-                    'DEFAULT_FILTER_BACKENDS': [
-                    'django_filters.rest_framework.backends.DjangoFilterBackend',
-                    'rest_framework.filters.OrderingFilter',
-    ], # 指定所有视图公用的过滤引擎，如果视图中指定了过滤引擎就使用视图当中的过滤引擎
+REST_FRAMEWORK = {
+    'NON_FIELD_ERRORS_KEY': 'errors',
+
+    # 可以修改默认的渲染类（处理返回的数据形式）
+    # 列表中的元素有优先级，第一个元素的优先级最高
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.backends.DjangoFilterBackend',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    # 指定所有视图公用的过滤引擎，如果视图中指定了过滤引擎就使用视图当中的过滤引擎
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'utils.pagination.Mypagination',
+
+    'PAGE_SIZE': 10,    # 设置页面数据数量
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.AutoSchema',  # 解决打开接口文档地址时候报错get_link
+
+    # 认证与权限
+    'DEFAULT_AUTHENTICATION_CLASSES': [  # 默认的认证类
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',  # 指定使用jwt_token认证方式
+        'rest_framework.authentication.SessionAuthentication',  # 会话认证
+        'rest_framework.authentication.BasicAuthentication'  # 基本认证（用户名和密码认证）
+    ],
+
+    # 登录权限设置，账户级别实在auth_user内的is_staff设置
+    # 'DEFAULT_PERMISSION_CLASSES': [  # 默认的权限类
+    # 'rest_framework.permissions.AllowAny',  # AllowAny不需要登录就有任意权限
+    # 'rest_framework.permissions.IsAuthenticated',  # IsAuthenticated只要登录就有任意权限
+    # 'rest_framework.permissions.IsAdminUser',  # IsAdminUser只有管理员账号登录就有任意权限
+    # ],
+
 }
 
+# 可以在全局配置settings中的logging，来配制日志信息
+LOGGING = {
+    'version': 1,  # 版本号
+    'disable_existing_loggers': False,  # 指定是否禁用已经存在的日志器
+    'formatters': {  # 日志的显示格式
+        'simple': {  # simple为简化版本的日志
+            'format': '%(asctime)s - [%(levelname)s] - [msg]%(message)s'
+        },
+        'verbose': {  # verbose为详细格式的日志
+            'format': '%(asctime)s - [%(levelname)s] - %(name)s - [msg]%(message)s - [%(filename)s:%(lineno)d ]'
+        },
+    },
+    'filters': {  # 对日志进行过滤，默认就ok
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {  # 指定日志输出渠道
+        'console': {  # 指定输出到控制台
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'file': {  # 日志保存到日志文件
+            'level': 'DEBUG',  # 最低等级为info
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, "logs/test.txt"),  # 日志文件位置，BASE_DIR>>>当前项目工程
+            'maxBytes': 100 * 1024 * 1024,  # 最大日志轮转100M
+            'backupCount': 10,
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {  # 定义日志器
+        'test': {
+            'handlers': ['console', 'file'],
+            'propagate': True,
+            'level': 'DEBUG',  # 日志器接受的最低日志级别
+        },
+    }
+}
+
+# AUTH_USER_MODEL = 'auth.User'  # 默认使用的是django auth子应用下的user模型类，可以指定自定义的模型类
+# User模型类中有很多字段没其中有一个is_staff字段，指定是否为超级管理员，如果为0是普通用户，如果为1是管理员
+
+
+JWT_AUTH = {
+
+    # 指定处理登录接口响应数据的函数
+    'JWT_RESPONSE_PAYLOAD_HANDLER':
+        'utils.jwt_handle.jwt_response_payload_handler',  # 重写了rest_framework内的jwt_response_payload_handler方法
+
+    # 前端用户访问一些需要认证之后的接口，那么默认需要在请求头中携带参数
+    # 请求key为Authorization，值为前缀+空格+token，如JWT +akjsdafkjkjlajjlkjsadkfjalksjdflkajfl
+
+    # 阔以指定token过期时间，默认为5分钟
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1),  # token的有效时间为一天之后失效
+
+    'JWT_AUTH_HEADER_PREFIX': 'Bearer',  # JWT前缀重命名，不加则默认为JWT。指定前端传递token值的前缀
+}

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework import validators
 from .models import Project_Mo
+from interface.models import Interface_Mo
 from interface.serializers import InterfaceModelSerializer
 # serializers.Serializer序列化
 
@@ -44,8 +45,11 @@ class ProjectSerializer(serializers.Serializer):
         return obj
 
     def update(self, instance, validated_data):
+        instance.id = validated_data.get('id') or instance.id
         instance.name = validated_data.get('name') or instance.name
         instance.tester = validated_data.get('leader') or instance.tester
+        instance.tester = validated_data.get('tester') or instance.tester
+        instance.programmer = validated_data.get('programmer') or instance.programmer
         instance.projects_id = validated_data.get('projects_id') or instance.projects_id
         instance.desc = validated_data.get('desc') or instance.desc
         instance.save()
@@ -60,7 +64,7 @@ class ProjectModelSerializer(serializers.ModelSerializer):  # 类名自定义
     email = serializers.EmailField(write_only=True)
 
     interface_mo_set = InterfaceModelSerializer(label='所拥有的接口', many=True, required=False)
-    create_time = serializers.DateTimeField(label='创建时间', help_text='创建时间', format=datetime_fmt, required=False)
+    create_time = serializers.DateTimeField(label='创 建时间', help_text='创建时间', format=datetime_fmt, required=False)
     update_time = serializers.DateTimeField(label='更新时间', help_text='更新时间', format='%Y-%m-%d %H:%M:%S', required=False)
 
     # 一、validators.UniqueValidator内
@@ -134,11 +138,31 @@ class ProjectModelSerializer(serializers.ModelSerializer):  # 类名自定义
                     'min_length': 4
             },
         }
+
     def create(self, validated_data):
         email = validated_data.pop('email')
         return super().create(validated_data)
 
 
+class ProjectsNamesModelSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Project_Mo
+        fields = ('id', 'name')
+
+
+class InterfacesNamesModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interface_Mo
+        fields = ('id', 'name')
+
+
+class InterFacesByProjectIdModelSerializer(serializers.ModelSerializer):
+    interfaces = InterfacesNamesModelSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Interface_Mo
+        fields = ('interfaces',)
 
 
 
