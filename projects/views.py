@@ -1,43 +1,32 @@
-from .models import Project_Mo
-from .serializers import ProjectModelSerializer, ProjectsNamesModelSerializer,InterFacesByProjectIdModelSerializer
-from rest_framework.generics import GenericAPIView
-from rest_framework import status
-from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import OrderingFilter
 from rest_framework import mixins
 from rest_framework import viewsets
-from rest_framework.decorators import action
-from utils.pagination import Mypagination
-import logging
 from rest_framework import permissions  # 认证
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework.generics import GenericAPIView
+from rest_framework.filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+
+from .serializers import ProjectModelSerializer, ProjectsNamesModelSerializer, InterFacesByProjectIdModelSerializer
+from utils.pagination import Mypagination  # 分页
+from .models import Project_Mo
+import logging  # 日志
 
 logger = logging.getLogger("test")  # 日志器为settings.py中定义的日志器名
 
 
-class XXXMinxin:
-    def list(self, *args, **kwargs):
-        lists = self.filter_queryset(self.get_queryset())  # 覆盖重写查询集lists
-        page = self.paginate_queryset(lists)
-        if page is not None:
-            serializer_obj = self.get_serializer(instance=page, many=True)
-            return self.get_paginated_response(serializer_obj.data)
-        one = self.get_serializer(instance=lists, many=True)
-        return Response(one.data,status=status.HTTP_200_OK)  # 1.status指定响应状态码
-
-
 class Projects(mixins.ListModelMixin, mixins.CreateModelMixin, GenericAPIView):
-    queryset = Project_Mo.objects.all() # 查询集
-    serializer_class = ProjectModelSerializer # 序列化器类
+    queryset = Project_Mo.objects.all()  # 查询集
+    serializer_class = ProjectModelSerializer  # 序列化器类
     filter_backends = [DjangoFilterBackend, OrderingFilter]  # 过滤引擎,排序引擎
-    filterset_fields = ['name', 'leader', 'id']  #过滤字段
+    filterset_fields = ['name', 'leader', 'id']  # 过滤字段
     ordering_fields = ['id', 'name']  # 排序引擎   示例：http://127.0.0.1:8000/index/projects/?ordering=id，id前面加-可以倒序
     pagination_class = Mypagination  # 在视图中指定分页
 
-    def get(self,request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):  # 调用rest_framework内的get方法
         return self.list(request, *args, **kwargs)
 
-    def post(self,request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
 
@@ -46,8 +35,8 @@ class Project(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.Destroy
     serializer_class = ProjectModelSerializer  # 序列化器类
 
     # 查询数据库所有数据
-    def get(self,request,  *args, **kwargs):
-        return self.retrieve(request,  *args, **kwargs)
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
         # 过滤需要安装第三方模块django-filter，还有再设置内的子应用注册django_filters,
         # 再导入过滤引擎：from django_filters.rest_framework import DjangoFilterBackend
         # pip install django - filter
@@ -55,7 +44,7 @@ class Project(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.Destroy
     def put(self, request, *args, **kwargs):
         return self.update(request, *args, **kwargs)
 
-    def delete(self,request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         return self.destroy(request, *args, **kwargs)
 
 
